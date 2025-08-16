@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user
+  namespace: roboshop
+  labels:
+    app: user
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user
+  template:
+    metadata:
+      labels:
+        app: user
+    spec:
+      containers:
+        - name: user
+          image: public.ecr.aws/w8x4g9h7/roboshop-v3/user:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: MONGO_URL
+              value: "mongodb://10.0.0.14:27017/users"
+            - name: REDIS_HOST
+              value: "10.0.0.11"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user
+  namespace: roboshop
+spec:
+  selector:
+    app: user
+  ports:
+    - port: 8080
+      targetPort: 8080
+  type: ClusterIP
