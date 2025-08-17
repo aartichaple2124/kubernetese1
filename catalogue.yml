@@ -21,7 +21,7 @@ spec:
           ports:
             - containerPort: 8080
           env:
-            - name: MONGO_URL
+            - name: MONGO
               value: "mongodb://10.0.0.12:27017/catalogue"
 
 ---
