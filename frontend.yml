@@ -22,15 +22,15 @@ spec:
             - containerPort: 80
           env:
             - name: CATALOGUE_HOST
-              value: "catalogue.roboshop.svc.cluster.local"
+              value: "catalogue"
             - name: USER_HOST
-              value: "user.roboshop.svc.cluster.local"
+              value: "user"
             - name: CART_HOST
-              value: "cart.roboshop.svc.cluster.local"
+              value: "cart"
             - name: SHIPPING_HOST
-              value: "shipping.roboshop.svc.cluster.local"
+              value: "shipping"
             - name: PAYMENT_HOST
-              value: "payment.roboshop.svc.cluster.local"
+              value: "payment"
 
 ---
 
