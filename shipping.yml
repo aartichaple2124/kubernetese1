@@ -22,9 +22,13 @@ spec:
             - containerPort: 8080
           env:
             - name: CART_ENDPOINT
-              value: "http://cart.roboshop:8080"
+              value: "cart.roboshop.svc.cluster.local:8080"
             - name: DB_HOST
               value: "10.0.0.15"
+            - name: DB_USER
+              value: "root"
+            - name: DB_PASS
+              value: "RoboShop@1"
 
 ---
 apiVersion: v1
@@ -64,7 +68,7 @@ spec:
             - name: DB_PASS
               value: "RoboShop@1"
             - name: SCHEMA_FILE
-              value: "db/schema.sql"
+              value: "db/app-user.sql"
       restartPolicy: Never
   backoffLimit: 3
 
@@ -91,7 +95,7 @@ spec:
             - name: DB_PASS
               value: "RoboShop@1"
             - name: SCHEMA_FILE
-              value: "db/master-data.sql"
+              value: "db/schema.sql"
       restartPolicy: Never
   backoffLimit: 3
 ---
@@ -117,7 +121,7 @@ spec:
             - name: DB_PASS
               value: "RoboShop@1"
             - name: SCHEMA_FILE
-              value: "db/triggers.sql"
+              value: "db/master-data.sq"
       restartPolicy: Never
   backoffLimit: 3
 

@@ -21,16 +21,16 @@ spec:
           ports:
             - containerPort: 80
           env:
-            - name: CATALOGUE_URL
-              value: "http://catalogue.roboshop:8080"
-            - name: CART_URL
-              value: "http://cart.roboshop:8080"
-            - name: USER_URL
-              value: "http://user.roboshop:8080"
-            - name: SHIPPING_URL
-              value: "http://shipping.roboshop:8080"
-            - name: PAYMENT_URL
-              value: "http://payment.roboshop:8080"
+            - name: CATALOGUE_HOST
+              value: "catalogue.roboshop.svc.cluster.local"
+            - name: USER_HOST
+              value: "user.roboshop.svc.cluster.local"
+            - name: CART_HOST
+              value: "cart.roboshop.svc.cluster.local"
+            - name: SHIPPING_HOST
+              value: "shipping.roboshop.svc.cluster.local"
+            - name: PAYMENT_HOST
+              value: "payment.roboshop.svc.cluster.local"
 
 ---
 
