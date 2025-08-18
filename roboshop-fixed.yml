@@ -1,14 +1,40 @@
-# -----------------------------
+# =========================================
 # Namespace
-# -----------------------------
+# =========================================
 apiVersion: v1
 kind: Namespace
 metadata:
   name: roboshop
 ---
-# =============================
-# FRONTEND (fixed)
-# =============================
+# =========================================
+# SECRETS (edit values if yours differ)
+# - MySQL: user=root, password=roboshop
+# - RabbitMQ: user=guest, password=guest
+# =========================================
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-secret
+  namespace: roboshop
+type: Opaque
+stringData:
+  MYSQL_USER: "root"
+  MYSQL_PASSWORD: "roboshop"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rabbitmq-secret
+  namespace: roboshop
+type: Opaque
+stringData:
+  AMQP_USER: "guest"
+  AMQP_PASS: "guest"
+---
+# =========================================
+# CONFIGMAPS (pointing to external DB IPs)
+# =========================================
+# FRONTEND -> internal services by name/port
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -26,359 +52,37 @@ data:
   PAYMENT_HOST: "payment"
   PAYMENT_PORT: "8080"
 ---
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: frontend
-  namespace: roboshop
-  labels:
-    app: frontend
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: frontend
-  template:
-    metadata:
-      labels:
-        app: frontend
-    spec:
-      containers:
-        - name: frontend
-          image: public.ecr.aws/w8x4g9h7/roboshop-v3/frontend
-          ports:
-            - containerPort: 80
-          envFrom:
-            - configMapRef:
-                name: frontend
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: frontend
-  namespace: roboshop
-spec:
-  type: LoadBalancer
-  selector:
-    app: frontend
-  ports:
-    - port: 80
-      targetPort: 80
-
-# =============================
-# INFRA: MongoDB, Redis, MySQL, RabbitMQ
-# (minimal, for dev/test)
-# =============================
-
-# --- MongoDB ---
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: mongodb
-  namespace: roboshop
-spec:
-  selector:
-    app: mongodb
-  ports:
-    - port: 27017
-      targetPort: 27017
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: mongodb
-  namespace: roboshop
-  labels:
-    app: mongodb
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: mongodb
-  template:
-    metadata:
-      labels:
-        app: mongodb
-    spec:
-      containers:
-        - name: mongodb
-          image: mongo:5
-          args: ["--bind_ip_all"]
-          ports:
-            - containerPort: 27017
-
-# --- Redis ---
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: redis
-  namespace: roboshop
-spec:
-  selector:
-    app: redis
-  ports:
-    - port: 6379
-      targetPort: 6379
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: redis
-  namespace: roboshop
-  labels:
-    app: redis
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: redis
-  template:
-    metadata:
-      labels:
-        app: redis
-    spec:
-      containers:
-        - name: redis
-          image: redis:7
-          ports:
-            - containerPort: 6379
-
-# --- MySQL (dev defaults) ---
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: mysql
-  namespace: roboshop
-spec:
-  selector:
-    app: mysql
-  ports:
-    - port: 3306
-      targetPort: 3306
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: mysql
-  namespace: roboshop
-  labels:
-    app: mysql
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: mysql
-  template:
-    metadata:
-      labels:
-        app: mysql
-    spec:
-      containers:
-        - name: mysql
-          image: mysql:8
-          env:
-            - name: MYSQL_ROOT_PASSWORD
-              value: "roboshop"
-          ports:
-            - containerPort: 3306
-
-# --- RabbitMQ (dev defaults guest/guest) ---
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: rabbitmq
-  namespace: roboshop
-spec:
-  selector:
-    app: rabbitmq
-  ports:
-    - port: 5672
-      targetPort: 5672
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: rabbitmq
-  namespace: roboshop
-  labels:
-    app: rabbitmq
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: rabbitmq
-  template:
-    metadata:
-      labels:
-        app: rabbitmq
-    spec:
-      containers:
-        - name: rabbitmq
-          image: rabbitmq:3-management
-          ports:
-            - containerPort: 5672
-            - containerPort: 15672
-
-# =============================
-# CATALOGUE (expects MONGO)
-# =============================
----
+# CATALOGUE -> Mongo (external)
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: catalogue
   namespace: roboshop
 data:
-  MONGO: "mongodb://mongodb:27017/catalogue"
+  MONGO: "mongodb://10.0.0.14:27017/catalogue"
 ---
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: catalogue
-  namespace: roboshop
-  labels:
-    app: catalogue
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: catalogue
-  template:
-    metadata:
-      labels:
-        app: catalogue
-    spec:
-      containers:
-        - name: catalogue
-          image: public.ecr.aws/w8x4g9h7/roboshop-v3/catalogue
-          ports:
-            - containerPort: 8080
-          envFrom:
-            - configMapRef:
-                name: catalogue
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: catalogue
-  namespace: roboshop
-spec:
-  selector:
-    app: catalogue
-  ports:
-    - port: 8080
-      targetPort: 8080
-
-# =============================
-# USER (expects MONGO)
-# =============================
----
+# USER -> Mongo + Redis (external)
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: user
   namespace: roboshop
 data:
-  MONGO: "mongodb://mongodb:27017/users"
+  MONGO: "mongodb://10.0.0.14:27017/users"
+  REDIS_HOST: "10.0.0.5"
 ---
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: user
-  namespace: roboshop
-  labels:
-    app: user
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: user
-  template:
-    metadata:
-      labels:
-        app: user
-    spec:
-      containers:
-        - name: user
-          image: public.ecr.aws/w8x4g9h7/roboshop-v3/user
-          ports:
-            - containerPort: 8080
-          envFrom:
-            - configMapRef:
-                name: user
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: user
-  namespace: roboshop
-spec:
-  selector:
-    app: user
-  ports:
-    - port: 8080
-      targetPort: 8080
-
-# =============================
-# CART (expects REDIS_HOST)
-# =============================
----
+# CART -> Redis (external) + talk to internal catalogue
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: cart
   namespace: roboshop
 data:
-  REDIS_HOST: "redis"
+  REDIS_HOST: "10.0.0.5"
   CATALOGUE_HOST: "catalogue"
   CATALOGUE_PORT: "8080"
 ---
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: cart
-  namespace: roboshop
-  labels:
-    app: cart
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: cart
-  template:
-    metadata:
-      labels:
-        app: cart
-    spec:
-      containers:
-        - name: cart
-          image: public.ecr.aws/w8x4g9h7/roboshop-v3/cart
-          ports:
-            - containerPort: 8080
-          envFrom:
-            - configMapRef:
-                name: cart
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: cart
-  namespace: roboshop
-spec:
-  selector:
-    app: cart
-  ports:
-    - port: 8080
-      targetPort: 8080
-
-# =============================
-# SHIPPING (expects MYSQL + CART)
-# =============================
----
+# SHIPPING -> MySQL (external) + Cart (internal)
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -387,87 +91,229 @@ metadata:
 data:
   CART_HOST: "cart"
   CART_PORT: "8080"
-  MYSQL_HOST: "mysql"
-  MYSQL_USER: "root"
-  MYSQL_PASSWORD: "roboshop"   # dev only; move to Secret for real use
+  MYSQL_HOST: "10.0.0.9"
 ---
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: shipping
-  namespace: roboshop
-  labels:
-    app: shipping
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: shipping
-  template:
-    metadata:
-      labels:
-        app: shipping
-    spec:
-      containers:
-        - name: shipping
-          image: public.ecr.aws/w8x4g9h7/roboshop-v3/shipping
-          ports:
-            - containerPort: 8080
-          envFrom:
-            - configMapRef:
-                name: shipping
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: shipping
-  namespace: roboshop
-spec:
-  selector:
-    app: shipping
-  ports:
-    - port: 8080
-      targetPort: 8080
-
-# =============================
-# PAYMENT (expects RabbitMQ)
-# =============================
----
+# PAYMENT -> RabbitMQ (external)
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: payment
   namespace: roboshop
 data:
-  AMQP_HOST: "rabbitmq"
-  AMQP_USER: "guest"
-  AMQP_PASS: "guest"
+  AMQP_HOST: "10.0.0.12"
+---
+# =========================================
+# DEPLOYMENTS + SERVICES
+# =========================================
+
+# -------- FRONTEND --------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: roboshop
+  labels: { app: frontend }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: frontend } }
+  template:
+    metadata:
+      labels: { app: frontend }
+    spec:
+      containers:
+        - name: frontend
+          image: public.ecr.aws/w8x4g9h7/roboshop-v3/frontend
+          ports: [{ containerPort: 80 }]
+          envFrom:
+            - configMapRef: { name: frontend }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: roboshop
+spec:
+  type: LoadBalancer
+  selector: { app: frontend }
+  ports:
+    - port: 80
+      targetPort: 80
+
+# -------- CATALOGUE --------
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalogue
+  namespace: roboshop
+  labels: { app: catalogue }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: catalogue } }
+  template:
+    metadata:
+      labels: { app: catalogue }
+    spec:
+      containers:
+        - name: catalogue
+          image: public.ecr.aws/w8x4g9h7/roboshop-v3/catalogue
+          ports: [{ containerPort: 8080 }]
+          envFrom:
+            - configMapRef: { name: catalogue }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalogue
+  namespace: roboshop
+spec:
+  selector: { app: catalogue }
+  ports:
+    - port: 8080
+      targetPort: 8080
+
+# -------- USER --------
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user
+  namespace: roboshop
+  labels: { app: user }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: user } }
+  template:
+    metadata:
+      labels: { app: user }
+    spec:
+      containers:
+        - name: user
+          image: public.ecr.aws/w8x4g9h7/roboshop-v3/user
+          ports: [{ containerPort: 8080 }]
+          envFrom:
+            - configMapRef: { name: user }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user
+  namespace: roboshop
+spec:
+  selector: { app: user }
+  ports:
+    - port: 8080
+      targetPort: 8080
+
+# -------- CART --------
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cart
+  namespace: roboshop
+  labels: { app: cart }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: cart } }
+  template:
+    metadata:
+      labels: { app: cart }
+    spec:
+      containers:
+        - name: cart
+          image: public.ecr.aws/w8x4g9h7/roboshop-v3/cart
+          ports: [{ containerPort: 8080 }]
+          envFrom:
+            - configMapRef: { name: cart }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cart
+  namespace: roboshop
+spec:
+  selector: { app: cart }
+  ports:
+    - port: 8080
+      targetPort: 8080
+
+# -------- SHIPPING --------
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shipping
+  namespace: roboshop
+  labels: { app: shipping }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: shipping } }
+  template:
+    metadata:
+      labels: { app: shipping }
+    spec:
+      containers:
+        - name: shipping
+          image: public.ecr.aws/w8x4g9h7/roboshop-v3/shipping
+          ports: [{ containerPort: 8080 }]
+          envFrom:
+            - configMapRef: { name: shipping }
+          env:
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_USER
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_PASSWORD
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shipping
+  namespace: roboshop
+spec:
+  selector: { app: shipping }
+  ports:
+    - port: 8080
+      targetPort: 8080
+
+# -------- PAYMENT --------
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: payment
   namespace: roboshop
-  labels:
-    app: payment
+  labels: { app: payment }
 spec:
   replicas: 1
-  selector:
-    matchLabels:
-      app: payment
+  selector: { matchLabels: { app: payment } }
   template:
     metadata:
-      labels:
-        app: payment
+      labels: { app: payment }
     spec:
       containers:
         - name: payment
           image: public.ecr.aws/w8x4g9h7/roboshop-v3/payment
-          ports:
-            - containerPort: 8080
+          ports: [{ containerPort: 8080 }]
           envFrom:
-            - configMapRef:
-                name: payment
+            - configMapRef: { name: payment }
+          env:
+            - name: AMQP_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: AMQP_USER
+            - name: AMQP_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: AMQP_PASS
 ---
 apiVersion: v1
 kind: Service
@@ -475,8 +321,7 @@ metadata:
   name: payment
   namespace: roboshop
 spec:
-  selector:
-    app: payment
+  selector: { app: payment }
   ports:
     - port: 8080
       targetPort: 8080
