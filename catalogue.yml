@@ -1,3 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+ name: catalogue
+data:
+ "APP_GIT_URL": "https://github.com/roboshop-devops-project-v3/catalogue"
+ "DB_HOST": "10.0.0.14"
+ "DB_TYPE": "mongo"
+ "MONGO": "true"
+ "MONGO_URL": "mongodb://10.0.0.14:27017/catalogue"
+ "SCHEMA_FILE": "db/master-data.js"
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -17,28 +29,26 @@ spec:
     spec:
       containers:
         - name: catalogue
-          image: public.ecr.aws/w8x4g9h7/roboshop-v3/catalogue:latest
+          image: public.ecr.aws/w8x4g9h7/roboshop-v3/catalogue
           ports:
             - containerPort: 8080
-          env:
-            - name: MONGO_URL
-              value: "mongodb://10.0.0.12:27017/catalogue"
+          envFrom:
+            - configMapRef:
+                name: catalogue
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: catalogue
-  namespace: roboshop
+ name: catalogue
 spec:
-  selector:
-    app: catalogue
+ selector:
+  app: catalogue
   ports:
-    - port: 8080
+    - protocol: TCP
+      port: 8080
       targetPort: 8080
-  type: ClusterIP
 ---
-
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -47,16 +57,10 @@ spec:
   template:
     spec:
       containers:
-        - name: schema-load
+        - name: catalogue-schema
           image: public.ecr.aws/w8x4g9h7/roboshop-v3/schema-load
-          env:
-            - name: DB_TYPE
-              value: "mongo"
-            - name: APP_GIT_URL
-              value: "https://github.com/roboshop-devops-project-v3/catalogue"
-            - name: DB_HOST
-              value: "10.0.0.12"
-            - name: SCHEMA_FILE
-              value: "db/master-data.js"
+          envFrom:
+            - configMapRef:
+                name: catalogue
       restartPolicy: Never
-  backoffLimit: 3
+  backoffLimit: 1
