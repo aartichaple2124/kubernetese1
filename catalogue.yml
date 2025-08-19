@@ -40,10 +40,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
- name: catalogue
+  name: catalogue
+  namespace: roboshop
 spec:
- selector:
-  app: catalogue
+  selector:
+    app: catalogue
   ports:
     - protocol: TCP
       port: 8080
