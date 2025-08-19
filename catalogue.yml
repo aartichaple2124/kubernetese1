@@ -4,10 +4,10 @@ metadata:
  name: catalogue
 data:
  "APP_GIT_URL": "https://github.com/roboshop-devops-project-v3/catalogue"
- "DB_HOST": "10.0.0.14"
+ "DB_HOST": "10.0.0.16"
  "DB_TYPE": "mongo"
  "MONGO": "true"
- "MONGO_URL": "mongodb://10.0.0.14:27017/catalogue"
+ "MONGO_URL": "mongodb://10.0.0.16:27017/catalogue"
  "SCHEMA_FILE": "db/master-data.js"
 ---
 apiVersion: apps/v1

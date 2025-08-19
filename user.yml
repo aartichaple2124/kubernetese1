@@ -4,8 +4,8 @@ metadata:
  name: user
 data:
  "MONGO": "true"
- "MONGO_URL": "mongodb://mongodb-dev.azdevopsb82.online:27017/users"
- "REDIS_URL": "redis://redis-dev.azdevopsb82.online:6379"
+ "MONGO_URL": "mongodb://10.0.0.16:27017/users"
+ "REDIS_URL": "redis://10.0.0.10:6379"
 
 ---
 
@@ -28,14 +28,12 @@ spec:
     spec:
       containers:
         - name: user
-          image: public.ecr.aws/w8x4g9h7/roboshop-v3/user:latest
+          image: public.ecr.aws/w8x4g9h7/roboshop-v3/user
           ports:
             - containerPort: 8080
-          env:
-            - name: MONGO_URL
-              value: "mongodb://10.0.0.12:27017/users"
-            - name: REDIS_HOST
-              value: "10.0.0.7"
+          envFrom:
+            - configMapRef:
+                name: user
 
 ---
 apiVersion: v1
