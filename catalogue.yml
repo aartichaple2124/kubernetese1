@@ -1,14 +1,15 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
- name: catalogue
+  name: catalogue
+  namespace: roboshop
 data:
- "APP_GIT_URL": "https://github.com/roboshop-devops-project-v3/catalogue"
- "DB_HOST": "10.0.0.16"
- "DB_TYPE": "mongo"
- "MONGO": "true"
- "MONGO_URL": "mongodb://10.0.0.16:27017/catalogue"
- "SCHEMA_FILE": "db/master-data.js"
+  APP_GIT_URL: "https://github.com/roboshop-devops-project-v3/catalogue"
+  DB_HOST: "10.0.0.16"
+  DB_TYPE: "mongo"
+  MONGO: "true"
+  MONGO_URL: "mongodb://10.0.0.16:27017/catalogue"
+  SCHEMA_FILE: "db/master-data.js"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -35,7 +36,6 @@ spec:
           envFrom:
             - configMapRef:
                 name: catalogue
-
 ---
 apiVersion: v1
 kind: Service
@@ -54,6 +54,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: catalogue-schema
+  namespace: roboshop
 spec:
   template:
     spec:
